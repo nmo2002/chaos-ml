@@ -33,7 +33,10 @@ def _suggest(trial: optuna.Trial, name: str, spec: Dict[str, Any]):
     if spec.get("log"):
         return trial.suggest_float(name, spec["low"], spec["high"], log=True)
     if "step" in spec:
-        return trial.suggest_int(name, spec["low"], spec["high"], step=spec["step"])
+        step = spec.get("step")
+        if isinstance(step, int) and step > 0:
+            return trial.suggest_int(name, spec["low"], spec["high"], step=step)
+        return trial.suggest_int(name, spec["low"], spec["high"])
     return trial.suggest_float(name, spec["low"], spec["high"])
 
 
