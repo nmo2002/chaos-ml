@@ -1,0 +1,33 @@
+{
+  "seed": 1,
+  "output_dir": "runs/lorenz63_lstm",
+  "plot": true,
+  "system": {
+    "name": "lorenz63",
+    "t_end": 100,
+    "t_points": 1000,
+    "lyapunov_exponent": 1.0,
+    "initial_conditions": [-5.0, -10.0, 20.0]
+  },
+  "data": {
+    "window": 10,
+    "horizon": 1,
+    "stride": 1,
+    "train_ratio": 0.2,
+    "val_ratio": 0.1,
+    "scaler": "minmax",
+    "feature_range": [0.0, 1.0]
+  },
+  "model": {
+    "name": "lstm",
+    "units": 256,
+    "depth": 3,
+    "dropout": 0.1
+  },
+  "training": {
+    "epochs": 200,
+    "batch_size": 64,
+    "patience": 20,
+    "learning_rate": 0.001
+  }
+}
