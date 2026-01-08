@@ -11,7 +11,7 @@ import torch
 
 from .datasets import prepare_dataset
 from .factory import build_model_from_config
-from .plots import plot_timeseries
+from .plots import plot_timeseries, plot_3d_trajectory, plot_heatmap_pair, plot_heatmap
 from .systems import generate_timeseries, select_observable
 from .training import evaluate_and_save, fit_model, predict_direct
 from .tuner import run_tuning
@@ -43,6 +43,7 @@ def main():
     model_cfg = config["model"]
     data_cfg = config["data"]
     train_cfg = config["training"]
+    plot_opts = config.get("plot_options", {})
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -111,13 +112,54 @@ def main():
         t_plot = t_test[window : window + len(result.predictions)]
         y_true_first = splits.y_test[:, 0, :]
         y_pred_first = y_pred[:, 0, :]
-        plot_timeseries(
-            t_plot,
-            splits.scaler.inverse_transform(y_true_first),
-            splits.scaler.inverse_transform(y_pred_first),
-            out_dir / "forecast.png",
-            title=f"{system_cfg['name']} - {model_cfg['name']} (horizon=1)",
-        )
+        y_true_inv = splits.scaler.inverse_transform(y_true_first)
+        y_pred_inv = splits.scaler.inverse_transform(y_pred_first)
+
+        if system_cfg["name"] == "lorenz96":
+            heatmap_mode = plot_opts.get("lorenz96_heatmap_mode", "pair")
+            include_lines = plot_opts.get("lorenz96_lines", plot_opts.get("lorenz96_view") == "lines")
+
+            if heatmap_mode == "error":
+                error = abs(y_true_inv - y_pred_inv)
+                plot_heatmap(
+                    error,
+                    out_dir / "heatmap.png",
+                    title=f"{system_cfg['name']} - {model_cfg['name']} (abs error)",
+                    xlabel="time index",
+                    ylabel="dimension",
+                )
+            else:
+                plot_heatmap_pair(
+                    y_true_inv,
+                    y_pred_inv,
+                    out_dir / "heatmap.png",
+                    title=f"{system_cfg['name']} - {model_cfg['name']}",
+                )
+
+            if include_lines:
+                plot_timeseries(
+                    t_plot,
+                    y_true_inv,
+                    y_pred_inv,
+                    out_dir / "forecast.png",
+                    title=f"{system_cfg['name']} - {model_cfg['name']} (horizon=1)",
+                )
+        else:
+            plot_timeseries(
+                t_plot,
+                y_true_inv,
+                y_pred_inv,
+                out_dir / "forecast.png",
+                title=f"{system_cfg['name']} - {model_cfg['name']} (horizon=1)",
+            )
+
+        if system_cfg["name"] == "lorenz63" and y_true_inv.shape[1] == 3:
+            plot_3d_trajectory(
+                y_true_inv,
+                y_pred_inv,
+                out_dir / "trajectory3d.png",
+                title="Lorenz-63 Trajectory (3D)",
+            )
 
     print(f"Done. Metrics: {result.metrics}")
 

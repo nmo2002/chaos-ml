@@ -49,6 +49,10 @@ class TransformerForecaster(nn.Module):
         super().__init__()
         self.horizon = horizon
         self.input_dim = input_dim
+        if num_heads < 1:
+            num_heads = 1
+        if d_model % num_heads != 0:
+            num_heads = 1
         self.proj = nn.Linear(input_dim, d_model)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads, dim_feedforward=dff, dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)

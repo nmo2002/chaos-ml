@@ -6,6 +6,7 @@ import json
 import subprocess
 from pathlib import Path
 
+import altair as alt
 import streamlit as st
 
 from chaos_ml.export import export_model
@@ -76,6 +77,19 @@ def tail_text(text: str, limit: int = 2000) -> str:
     return text[-limit:] if len(text) > limit else text
 
 
+
+
+def apply_plot_options(config_obj: dict, enabled: bool, lorenz96_lines: bool, heatmap_mode: str) -> dict:
+    if not enabled:
+        config_obj.pop("plot_options", None)
+        return config_obj
+    plot_opts = config_obj.get("plot_options", {})
+    plot_opts["lorenz96_view"] = "lines" if lorenz96_lines else "heatmap"
+    plot_opts["lorenz96_heatmap_mode"] = heatmap_mode
+    config_obj["plot_options"] = plot_opts
+    return config_obj
+
+
 def apply_tuning(config_obj: dict, enabled: bool, trials: int, epochs: int) -> dict:
     if not enabled:
         config_obj.pop("tuning", None)
@@ -114,6 +128,13 @@ with tab_config:
         config_data = load_config(config_path) if config_path else {}
         raw_json = st.text_area("Edit JSON config", value=json.dumps(config_data, indent=2), height=420)
 
+        current_system = config_data.get("system", {}).get("name")
+        try:
+            current_system = json.loads(raw_json).get("system", {}).get("name")
+        except Exception:
+            pass
+        is_lorenz96 = current_system == "lorenz96"
+
         save_name = st.text_input("Save as preset (filename)", value="new_experiment.json")
         save_btn = st.button("Save Preset", use_container_width=True)
         if save_btn:
@@ -128,8 +149,20 @@ with tab_config:
 
         st.subheader("Tuning")
         tuning_enabled = st.checkbox("Enable Optuna tuning", value=False)
-        tuning_trials = st.number_input("Trials", min_value=1, max_value=200, value=20, step=1)
-        tuning_epochs = st.number_input("Tuning epochs", min_value=1, max_value=200, value=50, step=1)
+        if tuning_enabled:
+            tuning_trials = st.number_input("Trials", min_value=1, max_value=200, value=20, step=1)
+            tuning_epochs = st.number_input("Tuning epochs", min_value=1, max_value=200, value=50, step=1)
+        else:
+            tuning_trials = 20
+            tuning_epochs = 50
+
+        if is_lorenz96:
+            st.subheader("Plot Options")
+            lorenz96_lines = st.checkbox("Include Lorenz-96 line plots", value=False)
+            heatmap_mode = st.selectbox("Heatmap mode", ["pair", "error"], index=0)
+        else:
+            lorenz96_lines = False
+            heatmap_mode = "pair"
 
     with col_b:
         st.subheader("Run")
@@ -140,6 +173,7 @@ with tab_config:
             st.session_state.queue.append({
                 "raw": raw_json,
                 "tuning": {"enabled": tuning_enabled, "trials": tuning_trials, "epochs": tuning_epochs},
+                "plot": {"enabled": is_lorenz96, "lorenz96_lines": lorenz96_lines, "heatmap_mode": heatmap_mode},
             })
             st.success("Config added to queue.")
 
@@ -151,6 +185,7 @@ with tab_config:
             st.stop()
 
         config_obj = apply_tuning(config_obj, tuning_enabled, tuning_trials, tuning_epochs)
+        config_obj = apply_plot_options(config_obj, is_lorenz96, lorenz96_lines, heatmap_mode)
         temp_config = RUNS_DIR / "ui_config.json"
         save_config(config_obj, temp_config)
 
@@ -167,9 +202,21 @@ with tab_config:
             st.json(metrics)
 
         plot_path = output_dir / "forecast.png"
-        if plot_path.exists():
+        heatmap_path = output_dir / "heatmap.png"
+        traj3d_path = output_dir / "trajectory3d.png"
+        if heatmap_path.exists():
+            st.subheader("Lorenz-96 Heatmap")
+            st.image(str(heatmap_path), use_container_width=True)
+            if lorenz96_lines and plot_path.exists():
+                st.subheader("Forecast Plot")
+                st.image(str(plot_path), use_container_width=True)
+        elif plot_path.exists():
             st.subheader("Forecast Plot")
             st.image(str(plot_path), use_container_width=True)
+
+        if traj3d_path.exists():
+            st.subheader("3D Trajectory")
+            st.image(str(traj3d_path), use_container_width=True)
 
     if st.session_state.last_run_output["stdout"] or st.session_state.last_run_output["stderr"]:
         st.subheader("Latest CLI Output")
@@ -202,6 +249,12 @@ with tab_queue:
                     item["tuning"]["trials"],
                     item["tuning"]["epochs"],
                 )
+                config_obj = apply_plot_options(
+                    config_obj,
+                    item.get("plot", {}).get("enabled", False),
+                    item.get("plot", {}).get("lorenz96_lines", False),
+                    item.get("plot", {}).get("heatmap_mode", "pair"),
+                )
                 temp_config = RUNS_DIR / f"ui_queue_{idx}.json"
                 save_config(config_obj, temp_config)
                 with st.spinner(f"Executing run {idx}..."):
@@ -227,6 +280,8 @@ with tab_history:
         metrics_path = run_dir / "metrics.json"
         history_path = run_dir / "history.json"
         plot_path = run_dir / "forecast.png"
+        heatmap_path = run_dir / "heatmap.png"
+        traj3d_path = run_dir / "trajectory3d.png"
         config_path = run_dir / "config.json"
 
         if config_path.exists():
@@ -248,9 +303,19 @@ with tab_history:
             if val_loss:
                 st.line_chart({"val_loss": val_loss})
 
-        if plot_path.exists():
+        if heatmap_path.exists():
+            st.subheader("Lorenz-96 Heatmap")
+            st.image(str(heatmap_path), use_container_width=True)
+            if lorenz96_lines and plot_path.exists():
+                st.subheader("Forecast Plot")
+                st.image(str(plot_path), use_container_width=True)
+        elif plot_path.exists():
             st.subheader("Forecast Plot")
             st.image(str(plot_path), use_container_width=True)
+
+        if traj3d_path.exists():
+            st.subheader("3D Trajectory")
+            st.image(str(traj3d_path), use_container_width=True)
 
         st.subheader("Export Model")
         export_format = st.selectbox("Format", ["pt", "torchscript"], index=0)
@@ -307,9 +372,20 @@ with tab_compare:
                 st.write(f"{i}. {r['run']} | {r['system']} | {r['model']} | {metric}={r[metric]:.6g}")
 
             st.subheader("Metric Chart")
-            values = [r[metric] for r in filtered]
             labels = [r["run"] for r in filtered]
-            st.bar_chart(values)
+            values = [r[metric] for r in filtered]
+            data = [{"run": labels[i], metric: values[i], "system": filtered[i]["system"], "model": filtered[i]["model"]} for i in range(len(filtered))]
+            chart = (
+                alt.Chart(alt.Data(values=data))
+                .mark_bar()
+                .encode(
+                    x=alt.X("run:N", sort=None, axis=alt.Axis(labelAngle=-45, labelLimit=300)),
+                    y=alt.Y(f"{metric}:Q"),
+                    tooltip=["run:N", "system:N", "model:N", alt.Tooltip(f"{metric}:Q", format=".6g")],
+                )
+                .properties(height=280)
+            )
+            st.altair_chart(chart, use_container_width=True)
             st.caption("Chart order follows the table below.")
 
             st.subheader("Runs Table")
@@ -330,12 +406,6 @@ with tab_compare:
                 ])
                 lines.append(line)
             csv_text = '\n'.join(lines)
-
-            csv_btn = st.button("Export CSV", use_container_width=True)
-            if csv_btn:
-                out_path = RUNS_DIR / csv_name
-                out_path.write_text(csv_text, encoding='utf-8')
-                st.success(f"Saved: {out_path}")
 
             st.download_button(
                 label="Download CSV",

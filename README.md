@@ -4,20 +4,19 @@ ChaosML is a unified toolkit for forecasting classic chaotic systems (Duffing, L
 It replaces notebook duplication with a config-driven CLI, reusable modules, and an interactive UI.
 
 Highlights
-
-ChaosML is useful for:
-- Benchmarking sequence models on chaotic dynamics
-- Testing forecasting stability and multi-step error growth
-- Prototyping data-driven surrogates for complex dynamical systems
-- Exploring education and research demos in nonlinear dynamics
-- Real-world analogs: weather/climate prototypes, mechanical oscillators, power/grid dynamics, and stress-testing forecasting workflows in finance
-
 - Shared data generation + scaling + windowing pipeline
 - LSTM, BiLSTM, Transformer, and Encoder-Decoder models
 - Reproducible runs (seeded), checkpointing, metrics, and plots
 - Optional hyperparameter tuning (Optuna)
 - Custom model plug-ins
 - UI for running, comparing, and exporting results
+
+Use cases
+- Benchmarking sequence models on chaotic dynamics
+- Testing forecasting stability and multi-step error growth
+- Prototyping data-driven surrogates for complex dynamical systems
+- Exploring education and research demos in nonlinear dynamics
+- Real-world analogs: weather/climate prototypes, mechanical oscillators, power/grid dynamics, and stress-testing forecasting workflows in finance
 
 ## Quick start (Windows)
 
@@ -45,7 +44,7 @@ un_all.ps1
 
 Outputs are saved to `runs/...` (metrics, predictions, plots, model checkpoint).
 
-If PyTorch fails to load on Windows, install the Microsoft Visual C++ 2015?2022 Redistributable (x64) and retry.
+If PyTorch fails to load on Windows, install the Microsoft Visual C++ 2015-2022 Redistributable (x64) and retry.
 
 ## Install as a package (editable)
 
@@ -135,6 +134,10 @@ def build_model(model_cfg, input_shape, output_dim, horizon):
     return nn.Sequential(...)
 ```
 
+## Plot options (Lorenz-96)
+- `plot_options.lorenz96_lines`: include line plots alongside heatmap
+- `plot_options.lorenz96_heatmap_mode`: `pair` or `error`
+
 ## Model export
 
 Every run saves a best checkpoint to `runs/<output>/model.pt`.
@@ -152,7 +155,7 @@ You can export from the UI (History tab) in either:
 ## Troubleshooting
 
 - `No module named streamlit`: install in venv using `python -m pip install streamlit`.
-- `DLL load failed` (PyTorch): install the VC++ 2015?2022 Redistributable (x64).
+- `DLL load failed` (PyTorch): install the VC++ 2015-2022 Redistributable (x64).
 - Empty validation set: reduce `window` or increase `train_ratio`/`val_ratio`.
 
 ## FAQ

@@ -67,6 +67,16 @@ def run_tuning(config: Dict[str, Any], device: torch.device) -> Dict[str, Any]:
             if key in space:
                 model_cfg[key] = _suggest(trial, key, space[key])
 
+
+        if "d_model" in model_cfg and "num_heads" in model_cfg:
+            d_model = int(model_cfg["d_model"])
+            num_heads = int(model_cfg["num_heads"])
+            if num_heads < 1:
+                model_cfg["num_heads"] = 1
+            elif d_model % num_heads != 0:
+                divisors = [h for h in range(1, num_heads + 1) if d_model % h == 0]
+                model_cfg["num_heads"] = max(divisors) if divisors else 1
+
         system_cfg = config["system"]
         ic = system_cfg.get("initial_conditions")
         ic = np.array(ic, dtype=float) if ic is not None else None
