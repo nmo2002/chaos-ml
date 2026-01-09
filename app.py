@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import altair as alt
@@ -13,7 +14,7 @@ from chaos_ml.export import export_model
 
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
+DEFAULT_PY = sys.executable
 RUNS_DIR = ROOT / "runs"
 CONFIGS_DIR = ROOT / "configs"
 
