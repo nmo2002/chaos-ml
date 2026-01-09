@@ -67,6 +67,11 @@ UI features:
 - Top-N run spotlight and CSV export
 - Export trained models
 
+## Streamlit Community Cloud
+
+This repo includes `runtime.txt` for Python 3.11 compatibility.
+For faster cloud demos, use the `*_demo.json` presets in `configs/` to keep runs short.
+
 ## Config structure
 
 Each config is a JSON file with:

@@ -1,0 +1,36 @@
+{
+  "seed": 1,
+  "output_dir": "runs/lorenz96_encoder_decoder_demo",
+  "plot": true,
+  "system": {
+    "name": "lorenz96",
+    "t_end": 50,
+    "t_points": 1000,
+    "lyapunov_exponent": 1.0,
+    "params": {
+      "F": 8.0
+    }
+  },
+  "data": {
+    "window": 5,
+    "horizon": 2,
+    "stride": 1,
+    "train_ratio": 0.2,
+    "val_ratio": 0.1,
+    "scaler": "minmax",
+    "feature_range": [0.0, 1.0]
+  },
+  "model": {
+    "name": "encoder_decoder",
+    "units": 64,
+    "depth": 1,
+    "dropout": 0.1,
+    "attention": true
+  },
+  "training": {
+    "epochs": 40,
+    "batch_size": 16,
+    "patience": 10,
+    "learning_rate": 0.001
+  }
+}
